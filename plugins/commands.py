@@ -449,39 +449,54 @@ async def save_shortlink(client, message):
     await save_group_settings(grp_id, 'api', api)
     await message.reply_text(f"Successfully changed shortlink for <b>{title}</b> to:\n\nURL - {url}\nAPI - {api}", parse_mode=enums.ParseMode.HTML)
 
-    
 @Client.on_message(filters.command('get_custom_settings'))
 async def get_custom_settings(client, message):
+    # User ID ki check
     userid = message.from_user.id if message.from_user else None
     if not userid:
-        return await message.reply("<b>You are Anonymous admin you can't use this command !</b>")
+        return await message.reply("<b>You are Anonymous admin; you can't use this command!</b>")
+
+    # Chat type ki check
     chat_type = message.chat.type
     if chat_type not in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
-        return await message.reply_text("Use this command in group.")
+        return await message.reply_text("Please use this command in a group.")
+
     grp_id = message.chat.id
     title = message.chat.title
-    if not await is_check_admin(client, grp_id, message.from_user.id):
-        return await message.reply_text('You not admin in this group...')    
+
+    # Admin check
+    if not await is_check_admin(client, grp_id, userid):
+        return await message.reply_text("You are not an admin in this group...")
+
+    # Custom settings fetch karna
     settings = await get_settings(grp_id)
-    text = f"""Custom settings for: {title}
+    if settings is None:
+        return await message.reply_text("No custom settings found for this group.")
 
-Shortlink URL: {settings["url"]}
-Shortlink API: {settings["api"]}
+    # Settings ka text banana
+    text = f"""Custom settings for: <b>{title}</b>
 
-IMDb Template: {settings['template']}
+Shortlink URL: {settings.get("url", "Not Set")}
+Shortlink API: {settings.get("api", "Not Set")}
 
-File Caption: {settings['caption']}
+IMDb Template: {settings.get('template', 'Not Set')}
 
-Welcome Text: {settings['welcome_text']}
+File Caption: {settings.get('caption', 'Not Set')}
 
-Tutorial Link: {settings['tutorial']}
+Welcome Text: {settings.get('welcome_text', 'Not Set')}
 
-Force Channels: {str(settings['fsub'])[1:-1] if settings['fsub'] else 'Not Set'}"""
+Tutorial Link: {settings.get('tutorial', 'Not Set')}
 
+Force Channels: {', '.join(settings.get('fsub', [])) if settings.get('fsub') else 'Not Set'}"""
+
+    # Close button ka inline keyboard
     btn = [[
         InlineKeyboardButton(text="Close", callback_data="close_data")
     ]]
-    await message.reply_text(text, reply_markup=InlineKeyboardMarkup(btn), disable_web_page_preview=True)
+    
+    # Settings reply karna
+    await message.reply_text(text, reply_markup=InlineKeyboardMarkup(btn), parse_mode=enums.ParseMode.HTML, disable_web_page_preview=True)
+
 
 @Client.on_message(filters.command('set_welcome'))
 async def save_welcome(client, message):
