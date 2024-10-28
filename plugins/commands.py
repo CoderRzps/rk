@@ -15,27 +15,37 @@ from utils import get_settings, get_size, is_subscribed, is_check_admin, get_sho
 import requests
 from telegraph import upload_file
 
-@Client.on_message(filters.command("ask") & filters.incoming) #add your support grp
+
+@Client.on_message(filters.command("ask") & filters.incoming)
 async def aiRes(_, message):
     if message.chat.id == SUPPORT_GROUP:
-        asked = message.text.split(None, 1)[1]
-        if not asked:
+        try:
+            # Puchhe gaye sawal ko split aur check karte hain
+            asked = message.text.split(None, 1)[1]
+        except IndexError:
             return await message.reply("Bhai kuch puch to le /ask k baad !")
+
         thinkStc = await message.reply_sticker(sticker=random.choice(STICKERS_IDS))
-        url = f"https://bisal-ai-api.vercel.app/biisal" 
-        res = requests.post(url , data={'query' : asked})
-        if res.status_code == 200:
+
+        # API request
+        url = "https://bisal-ai-api.vercel.app/biisal"
+        try:
+            res = requests.post(url, data={'query': asked})
+            res.raise_for_status()  # Agar error status aaye toh exception raise karega
             response = res.json().get("response")
             await thinkStc.delete()
-            await message.reply(f"<b>hey {message.from_user.mention()},\n{response.lstrip() if response.startswith(' ') else response}</b>")
-        else:
+            await message.reply(f"<b>hey {message.from_user.mention()},\n{response.strip()}</b>")  # Strip to remove extra spaces
+        except (requests.RequestException, ValueError):
             await thinkStc.delete()
             await message.reply("Mausam kharab hai ! Thode der mein try kre !\nor Report to Developer.")
     else:
         btn = [[
             InlineKeyboardButton('💡 sᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ 💡', url=SUPPORT_LINK)
         ]]
-        await message.reply(f"<b>hey {message.from_user.mention},\n\nPlease use this command in support group.</b>", reply_markup=InlineKeyboardMarkup(btn))
+        await message.reply(
+            f"<b>hey {message.from_user.mention()},\n\nPlease use this command in support group.</b>", 
+            reply_markup=InlineKeyboardMarkup(btn)
+            )
         
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
