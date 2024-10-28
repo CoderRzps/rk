@@ -343,44 +343,75 @@ async def settings(client, message):
         # Error Handling
         await message.reply_text(f"An error occurred: {e}")
 
+from pyrogram import Client, filters, enums
+
 @Client.on_message(filters.command('set_template'))
 async def save_template(client, message):
+    # User ID ki check
     userid = message.from_user.id if message.from_user else None
     if not userid:
-        return await message.reply("<b>You are Anonymous admin you can't use this command !</b>")
+        return await message.reply("<b>You are Anonymous admin; you can't use this command!</b>")
+    
+    # Chat type ki check
     chat_type = message.chat.type
     if chat_type not in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
-        return await message.reply_text("Use this command in group.")      
+        return await message.reply_text("Please use this command in a group.")
+
     grp_id = message.chat.id
     title = message.chat.title
-    if not await is_check_admin(client, grp_id, message.from_user.id):
-        return await message.reply_text('You not admin in this group.')
+
+    # Admin check
+    if not await is_check_admin(client, grp_id, userid):
+        return await message.reply_text("You are not an admin in this group.")
+    
+    # Template receive karna
     try:
         template = message.text.split(" ", 1)[1]
-    except:
-        return await message.reply_text("Command Incomplete!")   
-    await save_group_settings(grp_id, 'template', template)
-    await message.reply_text(f"Successfully changed template for {title} to\n\n{template}")  
+        if not template:
+            raise ValueError("Template is empty.")
+    except IndexError:
+        return await message.reply_text("Command incomplete! Please provide a template after the command.")
+    except ValueError as e:
+        return await message.reply_text(str(e))
     
+    # Group settings me template save karna
+    await save_group_settings(grp_id, 'template', template)
+    await message.reply_text(f"Successfully changed template for <b>{title}</b> to:\n\n{template}", parse_mode=enums.ParseMode.HTML)
+
+
 @Client.on_message(filters.command('set_caption'))
 async def save_caption(client, message):
+    # User ID ki check
     userid = message.from_user.id if message.from_user else None
     if not userid:
-        return await message.reply("<b>You are Anonymous admin you can't use this command !</b>")
+        return await message.reply("<b>You are Anonymous admin; you can't use this command!</b>")
+
+    # Chat type ki check
     chat_type = message.chat.type
     if chat_type not in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
-        return await message.reply_text("Use this command in group.")      
+        return await message.reply_text("Please use this command in a group.")
+    
     grp_id = message.chat.id
     title = message.chat.title
-    if not await is_check_admin(client, grp_id, message.from_user.id):
-        return await message.reply_text('You not admin in this group.')
+
+    # Admin check
+    if not await is_check_admin(client, grp_id, userid):
+        return await message.reply_text("You are not an admin in this group.")
+    
+    # Caption receive karna
     try:
         caption = message.text.split(" ", 1)[1]
-    except:
-        return await message.reply_text("Command Incomplete!") 
+        if not caption:
+            raise ValueError("Caption is empty.")
+    except IndexError:
+        return await message.reply_text("Command incomplete! Please provide a caption after the command.")
+    except ValueError as e:
+        return await message.reply_text(str(e))
+    
+    # Group settings me caption save karna
     await save_group_settings(grp_id, 'caption', caption)
-    await message.reply_text(f"Successfully changed caption for {title} to\n\n{caption}")
-        
+    await message.reply_text(f"Successfully changed caption for <b>{title}</b> to:\n\n{caption}", parse_mode=enums.ParseMode.HTML)
+
 @Client.on_message(filters.command('set_shortlink'))
 async def save_shortlink(client, message):
     userid = message.from_user.id if message.from_user else None
