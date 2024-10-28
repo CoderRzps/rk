@@ -229,10 +229,14 @@ async def channels_info(bot, message):
         return await message.reply("Not set INDEX_CHANNELS")
 
     text = '**Indexed Channels:**\n\n'
-    for id in ids:
-        chat = await bot.get_chat(id)
-        text += f'{chat.title}\n'
+    for i, id in enumerate(ids, start=1):
+        try:
+            chat = await bot.get_chat(id)
+            text += f'{i}. {chat.title}\n'
+        except Exception as e:
+            text += f'{i}. [ID: {id}] - Could not retrieve information: {e}\n'
     text += f'\n**Total:** {len(ids)}'
+
     await message.reply(text)
 
 @Client.on_message(filters.command('stats') & filters.user(ADMINS))
