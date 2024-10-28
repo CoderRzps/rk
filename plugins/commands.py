@@ -412,29 +412,43 @@ async def save_caption(client, message):
     await save_group_settings(grp_id, 'caption', caption)
     await message.reply_text(f"Successfully changed caption for <b>{title}</b> to:\n\n{caption}", parse_mode=enums.ParseMode.HTML)
 
+
 @Client.on_message(filters.command('set_shortlink'))
 async def save_shortlink(client, message):
+    # User ID ki check
     userid = message.from_user.id if message.from_user else None
     if not userid:
-        return await message.reply("<b>You are Anonymous admin you can't use this command !</b>")
+        return await message.reply("<b>You are Anonymous admin; you can't use this command!</b>")
+
+    # Chat type ki check
     chat_type = message.chat.type
     if chat_type not in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
-        return await message.reply_text("Use this command in group.")    
+        return await message.reply_text("Please use this command in a group.")
+
     grp_id = message.chat.id
     title = message.chat.title
-    if not await is_check_admin(client, grp_id, message.from_user.id):
-        return await message.reply_text('You not admin in this group.')
+
+    # Admin check
+    if not await is_check_admin(client, grp_id, userid):
+        return await message.reply_text("You are not an admin in this group.")
+
+    # Shortlink aur API receive karna
     try:
         _, url, api = message.text.split(" ", 2)
-    except:
-        return await message.reply_text("<b>Command Incomplete:-\n\ngive me a shortlink & api along with the command...\n\nEx:- <code>/shortlink mdisklink.link 5843c3cc645f5077b2200a2c77e0344879880b3e</code>")   
+    except ValueError:
+        return await message.reply_text("<b>Command Incomplete:-\n\nPlease provide a shortlink & API along with the command...\n\nExample: <code>/set_shortlink mdisklink.link 5843c3cc645f5077b2200a2c77e0344879880b3e</code></b>")
+
+    # Shortlink ko validate karna
     try:
         await get_shortlink(url, api, f'https://t.me/{temp.U_NAME}')
-    except:
-        return await message.reply_text("Your shortlink API or URL invalid, Please Check again!")   
+    except Exception:
+        return await message.reply_text("Your shortlink API or URL is invalid. Please check again!")
+
+    # Group settings me URL aur API save karna
     await save_group_settings(grp_id, 'url', url)
     await save_group_settings(grp_id, 'api', api)
-    await message.reply_text(f"Successfully changed shortlink for {title} to\n\nURL - {url}\nAPI - {api}")
+    await message.reply_text(f"Successfully changed shortlink for <b>{title}</b> to:\n\nURL - {url}\nAPI - {api}", parse_mode=enums.ParseMode.HTML)
+
     
 @Client.on_message(filters.command('get_custom_settings'))
 async def get_custom_settings(client, message):
