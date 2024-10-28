@@ -245,7 +245,7 @@ async def stats(bot, message):
     f_size = get_size(536870912 - await db.get_db_size())
     uptime = get_readable_time(time.time() - temp.START_TIME)
     STATUS_TXT = "Files: {}\nUsers: {}\nChats: {}\nUser Size: {}\nFile Size: {}\nUptime: {}"
-    await msg.edit(script.STATUS_TXT.format(files, users, chats, u_size, f_size, uptime))
+    await msg.edit(STATUS_TXT.format(files, users, chats, u_size, f_size, uptime))
 
 @Client.on_message(filters.command('settings'))
 async def settings(client, message):
