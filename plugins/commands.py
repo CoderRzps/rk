@@ -263,57 +263,85 @@ async def stats(bot, message):
 
 @Client.on_message(filters.command('settings'))
 async def settings(client, message):
-    userid = message.from_user.id if message.from_user else None
-    if not userid:
-        return await message.reply("<b>You are Anonymous admin you can't use this command !</b>")
-    chat_type = message.chat.type
-    if chat_type not in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
-        return await message.reply_text("Use this command in group.")
-    grp_id = message.chat.id
-    if not await is_check_admin(client, grp_id, message.from_user.id):
-        return await message.reply_text('You not admin in this group.')
-    settings = await get_settings(grp_id)
-    if settings is not None:
-        buttons = [[
-            InlineKeyboardButton('Auto Filter', callback_data=f'setgs#auto_filter#{settings["auto_filter"]}#{grp_id}'),
-            InlineKeyboardButton('✅ Yes' if settings["auto_filter"] else '❌ No', callback_data=f'setgs#auto_filter#{settings["auto_filter"]}#{grp_id}')
-        ],[
-            InlineKeyboardButton('File Secure', callback_data=f'setgs#file_secure#{settings["file_secure"]}#{grp_id}'),
-            InlineKeyboardButton('✅ Yes' if settings["file_secure"] else '❌ No', callback_data=f'setgs#file_secure#{settings["file_secure"]}#{grp_id}')
-        ],[
-            InlineKeyboardButton('IMDb Poster', callback_data=f'setgs#imdb#{settings["imdb"]}#{grp_id}'),
-            InlineKeyboardButton('✅ Yes' if settings["imdb"] else '❌ No', callback_data=f'setgs#imdb#{settings["imdb"]}#{grp_id}')
-        ],[
-            InlineKeyboardButton('Spelling Check', callback_data=f'setgs#spell_check#{settings["spell_check"]}#{grp_id}'),
-            InlineKeyboardButton('✅ Yes' if settings["spell_check"] else '❌ No', callback_data=f'setgs#spell_check#{settings["spell_check"]}#{grp_id}')
-        ],[
-            InlineKeyboardButton('Auto Delete', callback_data=f'setgs#auto_delete#{settings["auto_delete"]}#{grp_id}'),
-            InlineKeyboardButton(f'{get_readable_time(DELETE_TIME)}' if settings["auto_delete"] else '❌ No', callback_data=f'setgs#auto_delete#{settings["auto_delete"]}#{grp_id}')
-        ],[
-            InlineKeyboardButton('Welcome', callback_data=f'setgs#welcome#{settings["welcome"]}#{grp_id}',),
-            InlineKeyboardButton('✅ Yes' if settings["welcome"] else '❌ No', callback_data=f'setgs#welcome#{settings["welcome"]}#{grp_id}'),
-        ],[
-            InlineKeyboardButton('Shortlink', callback_data=f'setgs#shortlink#{settings["shortlink"]}#{grp_id}'),
-            InlineKeyboardButton('✅ Yes' if settings["shortlink"] else '❌ No', callback_data=f'setgs#shortlink#{settings["shortlink"]}#{grp_id}'),
-        ],[
-            InlineKeyboardButton('Result Page', callback_data=f'setgs#links#{settings["links"]}#{str(grp_id)}'),
-            InlineKeyboardButton('⛓ Link' if settings["links"] else '🧲 Button', callback_data=f'setgs#links#{settings["links"]}#{str(grp_id)}')
-        ],[
-            InlineKeyboardButton('Fsub', callback_data=f'setgs#is_fsub#{settings.get("is_fsub", IS_FSUB)}#{str(grp_id)}'),
-            InlineKeyboardButton('✅ On' if settings.get("is_fsub", IS_FSUB) else '❌ Off', callback_data=f'setgs#is_fsub#{settings.get("is_fsub", IS_FSUB)}#{str(grp_id)}')
-        ],[
-            InlineKeyboardButton('Stream', callback_data=f'setgs#is_stream#{settings.get("is_stream", IS_STREAM)}#{str(grp_id)}'),
-            InlineKeyboardButton('✅ On' if settings.get("is_stream", IS_STREAM) else '❌ Off', callback_data=f'setgs#is_stream#{settings.get("is_stream", IS_STREAM)}#{str(grp_id)}')
-        ],[
-            InlineKeyboardButton('❌ Close ❌', callback_data='close_data')
-        ]]
+    try:
+        # यूज़र आईडी की जांच करें
+        userid = message.from_user.id if message.from_user else None
+        if not userid:
+            return await message.reply("<b>You are Anonymous admin; you can't use this command!</b>")
+        
+        # यह कमांड केवल ग्रुप या सुपरग्रुप में ही चल सकती है
+        chat_type = message.chat.type
+        if chat_type not in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
+            return await message.reply_text("Please use this command in a group.")
+        
+        grp_id = message.chat.id
+
+        # ऐडमिन चेक
+        if not await is_check_admin(client, grp_id, message.from_user.id):
+            return await message.reply_text("You are not an admin in this group.")
+        
+        # ग्रुप सेटिंग्स प्राप्त करें
+        settings = await get_settings(grp_id)
+        if settings is None:
+            return await message.reply_text("Error: Could not retrieve settings.")
+
+        # बटन सेटअप
+        buttons = [
+            [
+                InlineKeyboardButton("Auto Filter", callback_data=f"setgs#auto_filter#{settings.get('auto_filter', False)}#{grp_id}"),
+                InlineKeyboardButton("✅ Yes" if settings.get("auto_filter", False) else "❌ No", callback_data=f"setgs#auto_filter#{settings.get('auto_filter', False)}#{grp_id}")
+            ],
+            [
+                InlineKeyboardButton("File Secure", callback_data=f"setgs#file_secure#{settings.get('file_secure', False)}#{grp_id}"),
+                InlineKeyboardButton("✅ Yes" if settings.get("file_secure", False) else "❌ No", callback_data=f"setgs#file_secure#{settings.get('file_secure', False)}#{grp_id}")
+            ],
+            [
+                InlineKeyboardButton("IMDb Poster", callback_data=f"setgs#imdb#{settings.get('imdb', False)}#{grp_id}"),
+                InlineKeyboardButton("✅ Yes" if settings.get("imdb", False) else "❌ No", callback_data=f"setgs#imdb#{settings.get('imdb', False)}#{grp_id}")
+            ],
+            [
+                InlineKeyboardButton("Spelling Check", callback_data=f"setgs#spell_check#{settings.get('spell_check', False)}#{grp_id}"),
+                InlineKeyboardButton("✅ Yes" if settings.get("spell_check", False) else "❌ No", callback_data=f"setgs#spell_check#{settings.get('spell_check', False)}#{grp_id}")
+            ],
+            [
+                InlineKeyboardButton("Auto Delete", callback_data=f"setgs#auto_delete#{settings.get('auto_delete', False)}#{grp_id}"),
+                InlineKeyboardButton(f"{get_readable_time(DELETE_TIME)}" if settings.get("auto_delete", False) else "❌ No", callback_data=f"setgs#auto_delete#{settings.get('auto_delete', False)}#{grp_id}")
+            ],
+            [
+                InlineKeyboardButton("Welcome", callback_data=f"setgs#welcome#{settings.get('welcome', False)}#{grp_id}"),
+                InlineKeyboardButton("✅ Yes" if settings.get("welcome", False) else "❌ No", callback_data=f"setgs#welcome#{settings.get('welcome', False)}#{grp_id}")
+            ],
+            [
+                InlineKeyboardButton("Shortlink", callback_data=f"setgs#shortlink#{settings.get('shortlink', False)}#{grp_id}"),
+                InlineKeyboardButton("✅ Yes" if settings.get("shortlink", False) else "❌ No", callback_data=f"setgs#shortlink#{settings.get('shortlink', False)}#{grp_id}")
+            ],
+            [
+                InlineKeyboardButton("Result Page", callback_data=f"setgs#links#{settings.get('links', False)}#{grp_id}"),
+                InlineKeyboardButton("⛓ Link" if settings.get("links", False) else "🧲 Button", callback_data=f"setgs#links#{settings.get('links', False)}#{grp_id}")
+            ],
+            [
+                InlineKeyboardButton("Fsub", callback_data=f"setgs#is_fsub#{settings.get('is_fsub', IS_FSUB)}#{grp_id}"),
+                InlineKeyboardButton("✅ On" if settings.get("is_fsub", IS_FSUB) else "❌ Off", callback_data=f"setgs#is_fsub#{settings.get('is_fsub', IS_FSUB)}#{grp_id}")
+            ],
+            [
+                InlineKeyboardButton("Stream", callback_data=f"setgs#is_stream#{settings.get('is_stream', IS_STREAM)}#{grp_id}"),
+                InlineKeyboardButton("✅ On" if settings.get("is_stream", IS_STREAM) else "❌ Off", callback_data=f"setgs#is_stream#{settings.get('is_stream', IS_STREAM)}#{grp_id}")
+            ],
+            [
+                InlineKeyboardButton("❌ Close ❌", callback_data="close_data")
+            ]
+        ]
+
+        # जवाब भेजें
         await message.reply_text(
-            text=f"Change your settings for <b>'{message.chat.title}'</b> as your wish. ⚙",
+            text=f"Change your settings for <b>'{message.chat.title}'</b> as you wish. ⚙",
             reply_markup=InlineKeyboardMarkup(buttons),
             parse_mode=enums.ParseMode.HTML
         )
-    else:
-        await message.reply_text('Something went wrong!')
+
+    except Exception as e:
+        # Error Handling
+        await message.reply_text(f"An error occurred: {e}")
 
 @Client.on_message(filters.command('set_template'))
 async def save_template(client, message):
