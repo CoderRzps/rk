@@ -36,33 +36,24 @@ async def aks_downloader(bot, query):
     )
 
 @Client.on_message(filters.group & filters.text & filters.incoming)
-async def give_filter(client, message):
-    await message.react(emoji=random.choice(REACTIONS))
-    settings = await get_settings(message.chat.id)
-    chatid = message.chat.id
-    userid = message.from_user.id if message.from_user else None
-    if GROUP_FSUB:
-        btn = await is_subscribed(client, message, settings['fsub']) if settings.get('is_fsub', IS_FSUB) else None
-        if btn:
-            btn.append(
-                [InlineKeyboardButton("Unmute Me 🔕", callback_data=f"unmuteme#{chatid}")]
-            )
-            reply_markup = InlineKeyboardMarkup(btn)
-            try:
-                await client.restrict_chat_member(chatid, message.from_user.id, ChatPermissions(can_send_messages=False))
-                await message.reply_photo(
-                    photo=random.choice(PICS),
-                    caption=f"👋 Hello {message.from_user.mention},\n\nPlease join and try again. 😇",
-                    reply_markup=reply_markup,
-                    parse_mode=enums.ParseMode.HTML
-                )
-                return
-            except Exception as e:
-                print(e)
-    else:
-        pass
+async def group_search(client, message):
+    try:
+        client_id = (await client.get_me()).id
+        vp = await client.get_chat_member(message.chat.id, client_id)
+        if vp.status not in [enums.ChatMemberStatus.OWNER, enums.ChatMemberStatus.ADMINISTRATOR]:
+            return
+    except:
+        return
+    if not await db.get_chat(message.chat.id):
+        total = int(message.chat.members_count)
+        username = f'@{message.chat.username}' if message.chat.username else vp.invite_link
+        await client.send_message(LOG_CHANNEL, script.NEW_GROUP_TXT.format(message.chat.title, message.chat.id, username, total))       
+        await db.add_chat(message.chat.id, message.chat.title)
+    chat_id = message.chat.id
+    settings = await get_settings(chat_id)
+    user_id = message.from_user.id if message and message.from_user else 0
     if settings["auto_filter"]:
-        if not userid:
+        if not user_id:
             await message.reply("I'm not working for anonymous admin!")
             return
         if message.chat.id == SUPPORT_GROUP:
@@ -101,7 +92,7 @@ async def give_filter(client, message):
             await message.reply_text('Report sent!' + ''.join(hidden_mentions))
             return
 
-        elif re.findall(r'https?://\S+|www\.\S+|t\.me/\S+', message.text):
+        elif re.findall(r'https?://\S+|www\.\S+|t\.me/\S+|@\w+', message.text):
             if await is_check_admin(client, message.chat.id, message.from_user.id):
                 return
             await message.delete()
@@ -112,10 +103,10 @@ async def give_filter(client, message):
                 return
             await client.send_message(LOG_CHANNEL, f"#Request\n★ User: {message.from_user.mention}\n★ Group: {message.chat.title}\n\n★ Message: {re.sub(r'#request', '', message.text.lower())}")
             await message.reply_text("Request sent!")
-            return
-            
+            return  
         else:
-            await auto_filter(client, message)
+            s = await message.reply(f"<b><i>⚠️ `{message.text}` searching...</i></b>")
+            await auto_filter(client, message, s)
     else:
         k = await message.reply_text('Auto Filter Off! ❌')
         await asyncio.sleep(5)
