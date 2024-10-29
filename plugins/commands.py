@@ -15,6 +15,13 @@ from utils import get_settings, get_size, is_subscribed, is_check_admin, get_sho
 import requests
 from telegraph import upload_file
 
+# PM_FILE_DELETE_TIME ko define karna
+PM_FILE_DELETE_TIME = 3600  # Example value
+
+# Jab aap use kar rahe hain
+time = get_readable_time(PM_FILE_DELETE_TIME)
+
+
 
 @Client.on_message(filters.command("ask") & filters.incoming)
 async def aiRes(_, message):
