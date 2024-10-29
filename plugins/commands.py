@@ -14,6 +14,9 @@ from info import STICKERS_IDS,SUPPORT_GROUP ,INDEX_CHANNELS, ADMINS, IS_VERIFY, 
 from utils import get_settings, get_size, is_subscribed, is_check_admin, get_shortlink, get_verify_status, update_verify_status, save_group_settings, temp, get_readable_time, get_wish, get_seconds
 import requests
 from telegraph import upload_file
+from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+import string
 
 # PM_FILE_DELETE_TIME ko define karna
 PM_FILE_DELETE_TIME = 3600  # Example value
@@ -54,7 +57,7 @@ async def aiRes(_, message):
             reply_markup=InlineKeyboardMarkup(btn)
             )
         
-@Client.on_message(filters.command("start") & filters.incoming)
+"""@Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
     botid = client.me.id
     if message.chat.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
@@ -256,8 +259,157 @@ async def start(client, message):
     ]]
     await msg.delete()
     await vp.delete()
-    await vp.reply("Tʜᴇ ғɪʟᴇ ʜᴀs ʙᴇᴇɴ ɢᴏɴᴇ ! Cʟɪᴄᴋ ɢɪᴠᴇɴ ʙᴜᴛᴛᴏɴ ᴛᴏ ɢᴇᴛ ɪᴛ ᴀɢᴀɪɴ.", reply_markup=InlineKeyboardMarkup(btns))
+    await vp.reply("Tʜᴇ ғɪʟᴇ ʜᴀs ʙᴇᴇɴ ɢᴏɴᴇ ! Cʟɪᴄᴋ ɢɪᴠᴇɴ ʙᴜᴛᴛᴏɴ ᴛᴏ ɢᴇᴛ ɪᴛ ᴀɢᴀɪɴ.", reply_markup=InlineKeyboardMarkup(btns))"""
 
+# .on_message decorator se start command handle karte hain
+@Client.on_message(filters.command("start") & filters.incoming)
+async def start(client, message):
+    botid = client.me.id
+    if message.chat.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
+        if not await db.get_chat(message.chat.id):
+            total = await client.get_chat_members_count(message.chat.id)
+            username = f'@{message.chat.username}' if message.chat.username else 'Private'
+            await client.send_message(LOG_CHANNEL, script.NEW_GROUP_TXT.format(message.chat.title, message.chat.id, username, total))       
+            await db.add_chat(message.chat.id, message.chat.title)
+        wish = get_wish()
+        btn = [[
+            InlineKeyboardButton('⚡️ ᴜᴘᴅᴀᴛᴇs ᴄʜᴀɴɴᴇʟ ⚡️', url=UPDATES_LINK),
+            InlineKeyboardButton('💡 Support Group 💡', url=SUPPORT_LINK)
+        ]]
+        await message.reply(text=f"<b>ʜᴇʏ {message.from_user.mention}, <i>{wish}</i>\nʜᴏᴡ ᴄᴀɴ ɪ ʜᴇʟᴘ ʏᴏᴜ??</b>", reply_markup=InlineKeyboardMarkup(btn))
+        return 
+        
+    if not await db.is_user_exist(message.from_user.id):
+        await db.add_user(message.from_user.id, message.from_user.first_name)
+        await client.send_message(LOG_CHANNEL, script.NEW_USER_TXT.format(message.from_user.mention, message.from_user.id))
+
+    verify_status = await get_verify_status(message.from_user.id)
+    if verify_status['is_verified'] and VERIFY_EXPIRE < (time.time() - verify_status['verified_time']):
+        await update_verify_status(message.from_user.id, is_verified=False)
+    
+    if (len(message.command) != 2) or (len(message.command) == 2 and message.command[1] == 'start'):
+        buttons = [[
+            InlineKeyboardButton('⤬ Aᴅᴅ Mᴇ Tᴏ Yᴏᴜʀ Gʀᴏᴜᴘ ⤬', url=f'http://t.me/{temp.U_NAME}?startgroup=true')
+                ],[
+                    InlineKeyboardButton('ℹ️ ᴜᴘᴅᴀᴛᴇs', url=UPDATES_LINK),
+                    InlineKeyboardButton('🧑‍💻 sᴜᴘᴘᴏʀᴛ', url=SUPPORT_LINK)
+                ],[
+                    InlineKeyboardButton('👨‍🚒 ʜᴇʟᴘ', callback_data='help'),
+                    InlineKeyboardButton('📚 ᴀʙᴏᴜᴛ', callback_data='about')
+                ],[
+                    InlineKeyboardButton('💰 ᴇᴀʀɴ ᴜɴʟɪᴍɪᴛᴇᴅ ᴍᴏɴᴇʏ ʙʏ ʙᴏᴛ 💰', callback_data='earn')
+                  ]]
+        reply_markup = InlineKeyboardMarkup(buttons)
+        await message.reply_photo(
+            photo=random.choice(PICS),
+            caption=script.START_TXT.format(message.from_user.mention, get_wish()),
+            reply_markup=reply_markup,
+            parse_mode=enums.ParseMode.HTML
+        )
+        return
+
+    mc = message.command[1]
+
+    if mc.startswith('verify'):
+        _, token = mc.split("_", 1)
+        verify_status = await get_verify_status(message.from_user.id)
+        if verify_status['verify_token'] != token:
+            return await message.reply("Your verify token is invalid.")
+        expiry_time = datetime.datetime.now() + datetime.timedelta(seconds=VERIFY_EXPIRE)
+        await update_verify_status(message.from_user.id, is_verified=True, verified_time=time_now(), expire_time=expiry_time)
+        if verify_status["link"] == "":
+            reply_markup = None
+        else:
+            btn = [[
+                InlineKeyboardButton("📌 Get File 📌", url=f'https://t.me/{temp.U_NAME}?start={verify_status["link"]}')
+            ]]
+            reply_markup = InlineKeyboardMarkup(btn)
+        await message.reply(f"✅ You successfully verified until: {get_readable_time(VERIFY_EXPIRE)}", reply_markup=reply_markup, protect_content=True)
+        return
+    
+    verify_status = await get_verify_status(message.from_user.id)
+    if not await db.has_premium_access(message.from_user.id):
+        if IS_VERIFY and not verify_status['is_verified']:
+            token = ''.join(random.choices(string.ascii_letters + string.digits, k=10))
+            await update_verify_status(message.from_user.id, verify_token=token, link="" if mc == 'inline_verify' else mc)
+            link = await get_shortlink(SHORTLINK_URL, SHORTLINK_API, f'https://t.me/{temp.U_NAME}?start=verify_{token}')
+            btn = [[
+                InlineKeyboardButton("🧿 Verify 🧿", url=link)
+            ],[
+                InlineKeyboardButton('🗳 Tutorial 🗳', url=VERIFY_TUTORIAL)
+            ]]
+            await message.reply("You not verified today! Kindly verify now. 🔐", reply_markup=InlineKeyboardMarkup(btn), protect_content=True)
+            return
+
+    settings = await get_settings(int(mc.split("_", 2)[1]))
+    if not await db.has_premium_access(message.from_user.id):
+        if settings['fsub']:
+            btn = await is_subscribed(client, message, settings['fsub'])
+            if btn:
+                btn.append(
+                    [InlineKeyboardButton("🔁 Try Again 🔁", callback_data=f"checksub#{mc}")]
+                )
+                reply_markup = InlineKeyboardMarkup(btn)
+                await message.reply_photo(
+                    photo=random.choice(PICS),
+                    caption=f"👋 Hello {message.from_user.mention},\n\nPlease join my 'Updates Channel' and try again. 😇",
+                    reply_markup=reply_markup,
+                    parse_mode=enums.ParseMode.HTML
+                )
+                return 
+        
+        _, grp_id, key = mc.split("_", 2)
+        files = temp.FILES.get(key)
+        if not files:
+            return await message.reply('No Such All Files Exist!')
+        settings = await get_settings(int(grp_id))
+        file_ids = []
+        total_files = await message.reply(f"<b><i>🗂 Total files - <code>{len(files)}</code></i></b>")
+        for file in files:
+            CAPTION = settings['caption']
+            f_caption = CAPTION.format(
+                file_name=file.file_name,
+                file_size=get_size(file.file_size),
+                file_caption=file.caption
+            )      
+            if settings.get('is_stream', IS_STREAM):
+                btn = [[
+                    InlineKeyboardButton("✛ ᴡᴀᴛᴄʜ & ᴅᴏᴡɴʟᴏᴀᴅ ✛", callback_data=f"stream#{file.file_id}")
+                ],[
+                    InlineKeyboardButton('⚡️ ᴜᴘᴅᴀᴛᴇs', url=UPDATES_LINK),
+                    InlineKeyboardButton('💡 ꜱᴜᴘᴘᴏʀᴛ', url=SUPPORT_LINK)
+                ],[
+                    InlineKeyboardButton('⁉️ ᴄʟᴏsᴇ ⁉️', callback_data='close_data')
+                ]]
+            else:
+                btn = [[
+                    InlineKeyboardButton('⚡️ ᴜᴘᴅᴀᴛᴇs', url=UPDATES_LINK),
+                    InlineKeyboardButton('💡 ꜱᴜᴘᴘᴏʀᴛ', url=SUPPORT_LINK)
+                ],[
+                    InlineKeyboardButton('⁉️ ᴄʟᴏsᴇ ⁉️', callback_data='close_data')
+                ]]
+
+            msg = await client.send_cached_media(
+                chat_id=message.from_user.id,
+                file_id=file.file_id,
+                caption=f_caption,
+                protect_content=False if await db.has_premium_access(message.from_user.id) else True,
+                reply_markup=InlineKeyboardMarkup(btn)
+            )
+            file_ids.append(msg.id)
+
+        time = get_readable_time(PM_FILE_DELETE_TIME)
+        vp = await message.reply(f"Nᴏᴛᴇ: Tʜɪs ғɪʟᴇs ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇ ɪɴ {time} ᴛᴏ ᴀᴠᴏɪᴅ ᴄᴏᴘʏʀɪɢʜᴛs. Sᴀᴠᴇ ᴛʜᴇᴍ ᴏᴜᴛsɪᴅᴇ ɪf yᴏᴜ ʟɪᴋᴇ ᴜsɪɴɢ ᴛʜᴇ ʙᴏᴛ.", reply_to_message_id=total_files.id)
+
+        # Cleanup old messages
+        await asyncio.sleep(PM_FILE_DELETE_TIME)
+        for file_id in file_ids:
+            try:
+                await client.delete_messages(chat_id=message.from_user.id, message_ids=file_id)
+            except Exception as e:
+                print(e)
+
+        await client.delete_messages(chat_id=message.from_user.id, message_ids=vp.id)
 
 @Client.on_message(filters.command('index_channels') & filters.user(ADMINS))
 async def channels_info(bot, message):
