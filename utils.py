@@ -1,21 +1,17 @@
-import logging
 from pyrogram.errors import UserNotParticipant, FloodWait
-from info import AUTH_CHANNEL, LONG_IMDB_DESCRIPTION
+from info import LONG_IMDB_DESCRIPTION
 from imdb import Cinemagoer
 import asyncio
-from pyrogram.types import Message, InlineKeyboardButton
+from pyrogram.types import InlineKeyboardButton
 from pyrogram import enums
-import os
 import pytz
-import time, re
+import re
 from datetime import datetime
-from typing import List, Any, Union, Optional, AsyncGenerator
 from database.users_chats_db import db
 from shortzy import Shortzy
 
 imdb = Cinemagoer() 
 
-# temp db
 class temp(object):
     START_TIME = 0
     BANNED_USERS = []
@@ -92,7 +88,6 @@ async def get_poster(query, bulk=False, id=False, file=None):
         plot = movie.get('plot outline')
     if plot and len(plot) > 800:
         plot = plot[0:800] + "..."
-
     return {
         'title': movie.get('title'),
         'votes': movie.get('votes'),
@@ -130,7 +125,6 @@ async def is_check_admin(bot, chat_id, user_id):
     except:
         return False
 
-
 async def get_verify_status(user_id):
     verify = temp.VERIFICATIONS.get(user_id)
     if not verify:
@@ -147,7 +141,7 @@ async def update_verify_status(user_id, verify_token="", is_verified=False, veri
     current['expire_time'] = expire_time
     temp.VERIFICATIONS[user_id] = current
     await db.update_verify_status(user_id, current)
-        
+      
 async def broadcast_messages(user_id, message, pin):
     try:
         m = await message.copy(chat_id=user_id)
@@ -191,8 +185,6 @@ async def save_group_settings(group_id, key, value):
     await db.update_settings(group_id, current)
 
 def get_size(size):
-    """Get size in readable format"""
-
     units = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB"]
     size = float(size)
     i = 0
@@ -239,21 +231,15 @@ async def get_seconds(time_string):
     def extract_value_and_unit(ts):
         value = ""
         unit = ""
-
         index = 0
         while index < len(ts) and ts[index].isdigit():
             value += ts[index]
             index += 1
-
         unit = ts[index:]
-
         if value:
             value = int(value)
-
         return value, unit
-
     value, unit = extract_value_and_unit(time_string)
-
     if unit == 's':
         return value
     elif unit == 'min':
