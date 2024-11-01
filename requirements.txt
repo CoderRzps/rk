@@ -15,3 +15,4 @@ fuzzywuzzy
 python-Levenshtein
 gunicorn
 requests 
+uvloop
