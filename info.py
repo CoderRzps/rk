@@ -55,6 +55,10 @@ if len(LOG_CHANNEL) == 0:
 else:
     LOG_CHANNEL = int(LOG_CHANNEL)
 
+AUTH_CHANNEL = [int(auth_channels) for auth_channels in environ.get('AUTH_CHANNEL', '').split()]
+if len(AUTH_CHANNEL) == 0:
+    print('Info - AUTH_CHANNEL is empty')
+
 # support group
 SUPPORT_GROUP = environ.get('SUPPORT_GROUP', '-1002155777503')
 if len(SUPPORT_GROUP) == 0:
