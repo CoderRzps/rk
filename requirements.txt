@@ -14,4 +14,4 @@ speedtest-cli
 fuzzywuzzy
 python-Levenshtein
 gunicorn
-request 
+requests 
